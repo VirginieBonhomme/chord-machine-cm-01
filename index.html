@@ -146,6 +146,20 @@ input{font-family:var(--mono)}
 .drum-beats{display:flex;gap:2px}
 .drum-beat{width:20px;height:20px;border:1px solid var(--border);border-radius:2px;background:var(--surface);cursor:pointer;transition:background .1s}
 .drum-beat.active{background:var(--g);border-color:var(--gm)}
+.drum-machine{margin-top:10px;background:var(--lcd);border:1px solid #0A0B08;border-radius:5px;padding:10px}
+.drum-machine-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.drum-machine-title{font-family:var(--disp);font-size:8px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gd)}
+.drum-pads{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.drum-pad{min-height:70px;background:#242420;border:1px solid #3A3A34;border-radius:4px;padding:8px;cursor:pointer;transition:all .06s;text-transform:uppercase;font-family:var(--disp);display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;box-shadow:inset 0 -2px 0 rgba(0,0,0,.35)}
+.drum-pad:hover{border-color:var(--gm)}
+.drum-pad:active,.drum-pad.hit{background:var(--g);border-color:var(--gm);color:var(--ink);transform:translateY(1px);box-shadow:none}
+.drum-pad-key{font-size:10px;font-weight:700;color:var(--g);letter-spacing:.08em}
+.drum-pad-name{font-size:12px;font-weight:700;color:#E8E4DC;letter-spacing:.08em}
+.drum-pad-role{font-size:7px;color:var(--gd);letter-spacing:.1em}
+.drum-pad.hit .drum-pad-key,.drum-pad.hit .drum-pad-name,.drum-pad.hit .drum-pad-role,.drum-pad:active .drum-pad-key,.drum-pad:active .drum-pad-name,.drum-pad:active .drum-pad-role{color:var(--ink)}
+.drum-rec-btn{background:transparent;color:#A86A00;border:.5px solid #A86A00;border-radius:2px;padding:7px 10px;font-size:8px;font-family:var(--disp);font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .08s}
+.drum-rec-btn:hover{color:#FFD060;border-color:#FFD060}
+.drum-rec-btn.on{background:#3D2E00;color:#FFD060;border-color:#C88A00}
 
 /* Chord grid */
 .chord-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
@@ -277,6 +291,12 @@ input{font-family:var(--mono)}
 .clear-btn:active{transform:scale(.96)}
 .stop-btn{background:transparent;color:var(--dim);border:.5px solid var(--dim);border-radius:2px;font-family:var(--disp);font-size:9px;letter-spacing:.16em;text-transform:uppercase;padding:8px 14px;transition:all .06s}
 .stop-btn:hover{color:var(--g);border-color:var(--g)}
+.mode-tog{display:flex;align-items:center;gap:2px;background:#2A2A26;border:.5px solid #3A3A34;border-radius:3px;padding:2px}
+.mode-btn{min-width:42px;padding:6px 8px;border-radius:2px;font-family:var(--disp);font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);transition:all .08s}
+.mode-btn.on{background:var(--g);color:var(--ink)}
+.rec-btn{background:transparent;color:#A86A00;border:.5px solid #A86A00;border-radius:2px;font-family:var(--disp);font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:8px 12px;transition:all .06s}
+.rec-btn:hover{color:#FFD060;border-color:#FFD060}
+.rec-btn.on{background:#3D2E00;color:#FFD060;border-color:#C88A00}
 .bpm-ctrl{display:flex;align-items:center;gap:6px;margin-left:10px}
 .bpm-lbl{font-size:8px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
 .bpm-btn{width:19px;height:19px;border-radius:2px;background:#2A2A26;color:var(--dim);font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .06s}
@@ -635,6 +655,29 @@ input{font-family:var(--mono)}
         <div style="margin-top:8px;display:flex;justify-content:flex-start">
           <button class="q-save-btn" id="previewDrumsBtn" type="button" onclick="previewDrums()">Loop drums</button>
         </div>
+        <div class="drum-machine">
+          <div class="drum-machine-top">
+            <div class="drum-machine-title">Live drum pads</div>
+            <button class="drum-rec-btn" id="drumRecBtn" type="button" onclick="toggleDrumRecording()">● Drum Rec</button>
+          </div>
+          <div class="drum-pads">
+            <button class="drum-pad" id="drumPadKick" type="button" onclick="playDrumPad('kick')" title="Keyboard: A">
+              <span class="drum-pad-key">A</span>
+              <span class="drum-pad-name">Kick</span>
+              <span class="drum-pad-role">Low</span>
+            </button>
+            <button class="drum-pad" id="drumPadSnare" type="button" onclick="playDrumPad('snare')" title="Keyboard: S">
+              <span class="drum-pad-key">S</span>
+              <span class="drum-pad-name">Snare</span>
+              <span class="drum-pad-role">Backbeat</span>
+            </button>
+            <button class="drum-pad" id="drumPadHihat" type="button" onclick="playDrumPad('hihat')" title="Keyboard: D">
+              <span class="drum-pad-key">D</span>
+              <span class="drum-pad-name">Hat</span>
+              <span class="drum-pad-role">Time</span>
+            </button>
+          </div>
+        </div>
         <div class="drum-editor" id="drumEditor" style="display:none">
           <div class="drum-row">
             <span class="drum-label">Kick</span>
@@ -655,8 +698,13 @@ input{font-family:var(--mono)}
   </div>
 
   <div class="bottombar">
-    <button class="play-btn" onclick="playQueue()">► Play queue</button>
+    <button class="play-btn" id="playBtn" onclick="playQueue()">► Play queue</button>
     <button class="stop-btn" onclick="stopAll()">■ Stop</button>
+    <div class="mode-tog" aria-label="Playback mode">
+      <button class="mode-btn on" id="modeSeqBtn" onclick="setPlayMode('sequence')">Seq</button>
+      <button class="mode-btn" id="modeFreeBtn" onclick="setPlayMode('free')">Free</button>
+    </div>
+    <button class="rec-btn" id="recordBtn" onclick="toggleFreeRecord()">● MIDI Rec</button>
     <button class="clear-btn" onclick="unselectChord()">× Clear</button>
     <div class="bpm-ctrl">
       <span class="bpm-lbl">BPM</span>
@@ -743,6 +791,11 @@ let selSlot=null;
 let obStep=0, curView='piano';
 let soundType='warm';
 let mobilePanel='left';
+let playMode='sequence', freeArmed=false, freeStep=0;
+let freeRecording=false, recordedPerformance=[], freeRecordStartedAt=0, freeLastHitAt=0;
+let recordedStepDurations=[], recordedSequenceLength=0, useRecordedTiming=false;
+let recordedSlotStarts=[], recordedMidiNotes=[], activeRecordingNotes={}, rawPlaybackTimers=[], useRawMidiTiming=false;
+let drumRecording=false, drumRecordStartedAt=0, recordedDrumHits=[], useRawDrumTiming=false;
 let drumsEnabled=false;
 let sampleAudioBuffer=null, sampleSource=null, sampleGain=null;
 let sampleLoopStart=0, sampleLoopEnd=0;
@@ -979,6 +1032,22 @@ function playChordAudio(root,type,dur=1.6){
   return oscs;
 }
 
+function playRecordedChordAudio(chord,dur=1.6){
+  if(chord.notes && chord.notes.length){
+    const ctx=getCtx();
+    const baseVol=0.068/Math.max(1,Math.sqrt(chord.notes.length));
+    const noteVol=baseVol*(chordVolume/100);
+    const oscs=[];
+    chord.notes.forEach((note,i)=>{
+      const f=midiNoteToFreq(note);
+      const v=i===0?noteVol*1.1:noteVol;
+      oscs.push(...playPiano(f,ctx,v,dur));
+    });
+    return oscs;
+  }
+  return playChordAudio(chord.root,chord.type,dur);
+}
+
 function playKick(ctx, vol=0.3){
   const now=ctx.currentTime;
   const osc=ctx.createOscillator();
@@ -1086,6 +1155,81 @@ function playDrumHit(type, ctx){
   if(type==='kick') return playKick(ctx);
   if(type==='snare') return playSnare(ctx);
   if(type==='hihat') return playHihat(ctx);
+}
+
+function flashDrumPad(type){
+  const id={kick:'drumPadKick',snare:'drumPadSnare',hihat:'drumPadHihat'}[type];
+  const pad=id?document.getElementById(id):null;
+  if(!pad) return;
+  pad.classList.add('hit');
+  setTimeout(()=>pad.classList.remove('hit'),90);
+}
+
+function playDrumPad(type){
+  playDrumHit(type,getCtx());
+  flashDrumPad(type);
+  if(drumRecording) recordDrumHit(type);
+}
+
+function recordDrumHit(type){
+  if(!drumRecording) return;
+  const start=performance.now()-drumRecordStartedAt;
+  recordedDrumHits.push({type,start:Math.max(0,start)});
+  setStatusText('Drum rec '+recordedDrumHits.length,true);
+}
+
+function startDrumRecording(){
+  stopAll();
+  drumRecording=true;
+  drumRecordStartedAt=performance.now();
+  recordedDrumHits=[];
+  useRawDrumTiming=false;
+  setPlaying(true);
+  updateDrumRecordButton();
+  setStatusText('Tap drum pads',true);
+}
+
+function finishDrumRecording(){
+  drumRecording=false;
+  updateDrumRecordButton();
+  if(!recordedDrumHits.length){
+    setStatusText('No drum hits',true);
+    return null;
+  }
+  useRawDrumTiming=true;
+  playMode='sequence';
+  freeArmed=false;
+  document.getElementById('modeSeqBtn').classList.add('on');
+  document.getElementById('modeFreeBtn').classList.remove('on');
+  updatePlayButton();
+  const message='Drum timing saved - Loop ready';
+  setStatusText(message,true);
+  return message;
+}
+
+function toggleDrumRecording(){
+  if(drumRecording){
+    finishDrumRecording();
+  } else {
+    startDrumRecording();
+  }
+}
+
+function handleDrumKeyboard(e){
+  if(e.repeat) return;
+  const tag=(e.target&&e.target.tagName||'').toLowerCase();
+  if(tag==='input' || tag==='textarea') return;
+  const key=e.key.toLowerCase();
+  if(key==='a'){
+    e.preventDefault();
+    playDrumPad('kick');
+  } else if(key==='s'){
+    e.preventDefault();
+    playDrumPad('snare');
+  } else if(key==='d'){
+    e.preventDefault();
+    playDrumPad('hihat');
+  }
 }
 
 function setDrums(pattern){
@@ -1496,10 +1640,19 @@ function updateMobileFlow(){
 }
 
 function stopAll(){
+  const recordingMessage=freeRecording ? finishFreeRecording() : null;
+  const drumRecordingMessage=drumRecording ? finishDrumRecording() : null;
   clearTimeout(qTimer);
+  clearTimeout(midiChordTimer);
+  rawPlaybackTimers.forEach(timer=>clearTimeout(timer));
+  rawPlaybackTimers=[];
   drumTimers.forEach(timer=>clearTimeout(timer));
   drumTimers=[];
   drumPreviewLooping=false;
+  freeArmed=false;
+  freeStep=0;
+  activeMidiNotes.clear();
+  lastMidiChordSignature=null;
   const previewBtn=document.getElementById('previewDrumsBtn');
   if(previewBtn) previewBtn.textContent='Loop drums';
   activeOscs.forEach(n=>{try{n.stop()}catch(e){}});
@@ -1507,6 +1660,11 @@ function stopAll(){
   stopSample();
   setPlaying(false);
   clearQueueGlow();
+  updatePlayButton();
+  updateRecordButton();
+  updateDrumRecordButton();
+  if(recordingMessage) setStatusText(recordingMessage,true);
+  if(drumRecordingMessage) setStatusText(drumRecordingMessage,true);
 }
 
 function setPlaying(s){
@@ -1516,6 +1674,45 @@ function setPlaying(s){
   document.querySelectorAll('.wb').forEach(b=>b.classList.toggle('on',s));
   const st=document.getElementById('statusTxt');
   st.textContent=s?'Playing':'Standby'; st.classList.toggle('on',s);
+}
+
+function setStatusText(text,on=false){
+  const st=document.getElementById('statusTxt');
+  st.textContent=text;
+  st.classList.toggle('on',on);
+}
+
+function updatePlayButton(){
+  const playBtn=document.getElementById('playBtn');
+  if(!playBtn) return;
+  if(playMode==='free'){
+    playBtn.textContent=freeArmed?'■ Stop free':'► Arm free';
+  } else {
+    playBtn.textContent='► Play queue';
+  }
+}
+
+function updateRecordButton(){
+  const recordBtn=document.getElementById('recordBtn');
+  if(!recordBtn) return;
+  recordBtn.classList.toggle('on',freeRecording);
+  recordBtn.textContent=freeRecording?'■ Stop Rec':'● MIDI Rec';
+}
+
+function updateDrumRecordButton(){
+  const btn=document.getElementById('drumRecBtn');
+  if(!btn) return;
+  btn.classList.toggle('on',drumRecording);
+  btn.textContent=drumRecording?'■ Stop Drums':'● Drum Rec';
+}
+
+function setPlayMode(mode){
+  playMode=mode==='free'?'free':'sequence';
+  stopAll();
+  document.getElementById('modeSeqBtn').classList.toggle('on',playMode==='sequence');
+  document.getElementById('modeFreeBtn').classList.toggle('on',playMode==='free');
+  updatePlayButton();
+  setStatusText(playMode==='free'?'Free mode':'Standby',playMode==='free');
 }
 
 /* ═══════════════════ CHORD SELECT ═══════════════════ */
@@ -1560,7 +1757,12 @@ function selectChord(root,type,addQ=true){
   const chordOscs = playChordAudio(root,type);
   activeOscs.push(...chordOscs);
   setPlaying(true);
-  animBar(); setTimeout(()=>setPlaying(false),1700);
+  animBar(); setTimeout(()=>{
+    if(!(playMode==='free' && (freeArmed || freeRecording))) setPlaying(false);
+  },1700);
+  if(playMode==='free' && freeRecording){
+    recordFreeHit({root,type});
+  }
 
   // On mobile, after selecting a chord focus on the queue panel
   if(window.innerWidth <= 900){
@@ -1568,12 +1770,12 @@ function selectChord(root,type,addQ=true){
   }
 
   if(addQ){
-
     if(selSlot!==null){
       queue[selSlot]={root,type};
       selSlot=null;
+      clearRecordedTiming();
       renderQueue();
-    } else {
+    } else if(playMode==='sequence') {
       addToNext(root,type);
     }
   }
@@ -1765,6 +1967,7 @@ function loadProg(idx,el){
   const p=PROGS[idx];
   queue=new Array(MAX_QUEUE_LENGTH).fill(null);
   p.chords.forEach((c,i)=>{if(i<queueLength)queue[i]={root:c.r,type:c.t}});
+  clearRecordedTiming();
   renderQueue(); playQueue();
 }
 
@@ -1779,6 +1982,7 @@ function appendProg(idx,e){
     const targetIdx=slotIdx+i;
     if(targetIdx<queueLength) queue[targetIdx]={root:c.r,type:c.t};
   });
+  clearRecordedTiming();
   renderQueue();
 }
 
@@ -1793,7 +1997,10 @@ function buildQueueSlots(){
     s.addEventListener('dragleave',()=>s.style.borderColor='');
     s.addEventListener('drop',e=>{e.preventDefault();s.style.borderColor='';handleDrop(e,i)});
     s.addEventListener('click',()=>{
-      if(queue[i]) return;
+      if(queue[i]){
+        if(playMode==='free') triggerQueuedChord(i);
+        return;
+      }
       // select this slot for next chord click
       selSlot=selSlot===i?null:i;
       renderQueue();
@@ -1806,9 +2013,10 @@ function slotMarkup(idx,state='normal'){
   const ch=queue[idx];
   const isPlaying=state==='playing';
   if(ch){
-    const tl=ch.type==='maj'?'maj':'min';
+    const name=ch.label || ch.root;
+    const tl=ch.notes ? 'free' : (ch.type==='maj'?'maj':'min');
     const removeBtn=isPlaying?'':`<button class="qs-rm" type="button" aria-label="Remove chord ${idx+1}" onclick="removeChordFromQueue(${idx}, event)"></button>`;
-    return `<span class="qs-idx">${idx+1}</span><span class="qs-name">${ch.root}</span><span class="qs-type">${tl}</span>${removeBtn}`;
+    return `<span class="qs-idx">${idx+1}</span><span class="qs-name">${name}</span><span class="qs-type">${tl}</span>${removeBtn}`;
   }
   if(isPlaying){
     return `<span class="qs-idx">${idx+1}</span><span class="qs-rest">REST</span>`;
@@ -1845,6 +2053,7 @@ function addToNext(root,type){
   const idx=queue.slice(0,queueLength).findIndex(s=>s===null);
   if(idx===-1)return;
   queue[idx]={root,type};
+  clearRecordedTiming();
   renderQueue();
 }
 
@@ -1852,11 +2061,13 @@ function removeChordFromQueue(idx,event){
   if(event) event.stopPropagation();
   queue[idx]=null;
   if(selSlot===idx) selSlot=null;
+  clearRecordedTiming();
   renderQueue();
 }
 
 function clearQueue(){
   stopAll(); queue=new Array(MAX_QUEUE_LENGTH).fill(null); selSlot=null;
+  clearRecordedTiming();
   document.querySelectorAll('.pc').forEach(c=>c.classList.remove('on'));
   renderQueue();
 }
@@ -1872,6 +2083,7 @@ function handleDrop(e,to){
     if(chord.root && chord.type){
       // Dropping a chord from the grid
       queue[to]={root:chord.root,type:chord.type};
+      clearRecordedTiming();
       renderQueue();
       return;
     }
@@ -1881,6 +2093,7 @@ function handleDrop(e,to){
   const from=parseInt(data);
   if(isNaN(from)||from===to)return;
   [queue[to],queue[from]]=[queue[from],queue[to]];
+  clearRecordedTiming();
   renderQueue();
 }
 function clearQueueGlow(){
@@ -1918,6 +2131,7 @@ function setRateButtons(prefix, division){
 
 function setChordDivision(division){
   chordDivision=NOTE_DIVISIONS[division] ? division : '1/8';
+  clearRecordedTiming();
   setRateButtons('chordRate', chordDivision);
 }
 
@@ -1940,6 +2154,22 @@ function scheduleDrumPattern(pattern, startDelay=0){
 }
 
 function previewDrums(){
+  if(useRawDrumTiming && recordedDrumHits.length){
+    if(drumPreviewLooping || isPlaying){
+      stopAll();
+      return;
+    }
+    stopAll();
+    drumPreviewLooping=true;
+    looping=true;
+    document.getElementById('loopBtn').classList.add('on');
+    const previewBtn=document.getElementById('previewDrumsBtn');
+    if(previewBtn) previewBtn.textContent='Stop drums';
+    setPlaying(true);
+    playRawMidiTake();
+    setStatusText('Looping drums',true);
+    return;
+  }
   if(!drumsEnabled || !DRUM_PATTERNS[drumsEnabled]){
     alert('Choose a drum pattern first');
     return;
@@ -1967,8 +2197,330 @@ function previewDrums(){
   loopPreview();
 }
 
+function clearRecordedTiming(){
+  useRecordedTiming=false;
+  useRawMidiTiming=false;
+  recordedStepDurations=[];
+  recordedSequenceLength=0;
+  recordedSlotStarts=[];
+  recordedMidiNotes=[];
+  activeRecordingNotes={};
+  recordedDrumHits=[];
+  useRawDrumTiming=false;
+}
+
+function showChordReadout(chord){
+  if(chord.notes && chord.notes.length){
+    const names=chord.notes.map(midiNoteToName);
+    const uniqueNames=[...new Set(names)];
+    const label=chord.label || uniqueNames.join('');
+    document.getElementById('lcdName').textContent=label;
+    document.getElementById('lcdNotes').textContent=uniqueNames.join(' · ');
+    document.getElementById('lcdMood').textContent='Free form';
+    document.getElementById('lcdAfter').textContent='Your voicing';
+    document.getElementById('icName').textContent=label;
+    document.getElementById('icNotes').textContent=uniqueNames.join(' · ');
+    document.getElementById('icMood').textContent='Free form / Jazz';
+    document.getElementById('icAfter').textContent='Recorded from MIDI';
+    highlightKeys(chord.notes.map(note=>note%12));
+    document.querySelectorAll('.cb').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.chord-node').forEach(n=>n.classList.remove('on'));
+    return;
+  }
+  const d=(chord.type==='maj'?MAJ:MIN)[chord.root];
+  const nms=d.semi.map(s=>ROOTS[s%12]);
+  document.getElementById('lcdName').textContent=chord.root+(chord.type==='maj'?' MAJ':' MIN');
+  document.getElementById('lcdNotes').textContent=nms.join(' · ');
+  document.getElementById('lcdMood').textContent=d.mood.split(' · ')[0];
+  document.getElementById('lcdAfter').textContent=d.after;
+  document.getElementById('icName').textContent=chord.root+(chord.type==='maj'?' Major':' Minor');
+  document.getElementById('icNotes').textContent=nms.join(' · ');
+  document.getElementById('icMood').textContent=d.mood;
+  document.getElementById('icAfter').textContent=d.after;
+  highlightKeys(d.semi);
+  document.querySelectorAll('.cb').forEach(b=>b.classList.remove('on'));
+  const cb=document.querySelector(`.cb[data-r="${chord.root}"][data-t="${chord.type}"]`);
+  if(cb) cb.classList.add('on');
+  document.querySelectorAll('.chord-node').forEach(n=>n.classList.remove('on'));
+  const mn=document.querySelector(`.chord-node[data-r="${chord.root}"][data-t="${chord.type}"]`);
+  if(mn) mn.classList.add('on');
+}
+
+function nextQueuedChordIndex(start){
+  for(let offset=0;offset<queueLength;offset++){
+    const idx=(start+offset)%queueLength;
+    if(queue[idx]) return idx;
+  }
+  return -1;
+}
+
+function triggerQueuedChord(idx){
+  const chord=queue[idx];
+  if(!chord) return;
+  clearQueueGlow();
+  const slot=document.querySelector(`.qs[data-idx="${idx}"]`);
+  if(slot){
+    slot.className='qs playing';
+    slot.innerHTML=slotMarkup(idx,'playing');
+  }
+  showChordReadout(chord);
+  activeOscs.push(...playRecordedChordAudio(chord,1.9));
+  animBar(900);
+  setPlaying(true);
+  setStatusText('Free play',true);
+  freeStep=(idx+1)%queueLength;
+  recordFreeHit(chord);
+}
+
+function advanceFreeChord(){
+  const idx=nextQueuedChordIndex(freeStep);
+  if(idx===-1) return false;
+  triggerQueuedChord(idx);
+  return true;
+}
+
+function recordFreeHit(chord){
+  if(!freeRecording) return;
+  if(recordedPerformance.length>=MAX_QUEUE_LENGTH){
+    setStatusText('Rec '+MAX_QUEUE_LENGTH+'/'+MAX_QUEUE_LENGTH,true);
+    return;
+  }
+  const now=performance.now();
+  const delay=freeLastHitAt ? now-freeLastHitAt : 0;
+  const start=freeRecordStartedAt ? now-freeRecordStartedAt : 0;
+  const slotIdx=recordedPerformance.length;
+  recordedPerformance.push({
+    root:chord.root,
+    type:chord.type,
+    label:chord.label,
+    notes:chord.notes ? chord.notes.slice() : null,
+    start,
+    delay
+  });
+  queue[slotIdx]={
+    root:chord.root,
+    type:chord.type,
+    label:chord.label,
+    notes:chord.notes ? chord.notes.slice() : null
+  };
+  if(slotIdx>=queueLength) queueLength=8;
+  document.getElementById('len4Btn').classList.toggle('on', queueLength===4);
+  document.getElementById('len8Btn').classList.toggle('on', queueLength===8);
+  renderQueue();
+  const slot=document.querySelector(`.qs[data-idx="${slotIdx}"]`);
+  if(slot){
+    slot.className='qs playing';
+    slot.innerHTML=slotMarkup(slotIdx,'playing');
+    setTimeout(()=>clearQueueGlow(),280);
+  }
+  freeLastHitAt=now;
+  setStatusText('Rec '+Math.min(recordedPerformance.length,MAX_QUEUE_LENGTH)+'/'+MAX_QUEUE_LENGTH,true);
+  if(recordedPerformance.length>=MAX_QUEUE_LENGTH){
+    setTimeout(()=>{if(freeRecording) finishFreeRecording()},320);
+  }
+}
+
+function startFreeRecording(){
+  if(playMode!=='free') setPlayMode('free');
+  stopAll();
+  queue=new Array(MAX_QUEUE_LENGTH).fill(null);
+  queueLength=4;
+  clearRecordedTiming();
+  document.getElementById('len4Btn').classList.add('on');
+  document.getElementById('len8Btn').classList.remove('on');
+  freeArmed=false;
+  freeStep=0;
+  setPlaying(true);
+  renderQueue();
+  recordedPerformance=[];
+  recordedMidiNotes=[];
+  activeRecordingNotes={};
+  freeRecordStartedAt=performance.now();
+  freeLastHitAt=0;
+  freeRecording=true;
+  updateRecordButton();
+  setStatusText('Free timing rec',true);
+}
+
+function finishFreeRecording(){
+  finalizeHeldRecordingNotes();
+  freeRecording=false;
+  updateRecordButton();
+  const take=recordedPerformance.slice(0,MAX_QUEUE_LENGTH);
+  const rawNotes=recordedMidiNotes.slice();
+  recordedPerformance=[];
+  freeRecordStartedAt=0;
+  freeLastHitAt=0;
+  activeRecordingNotes={};
+  if(!take.length){
+    setStatusText(playMode==='free'?'Free armed':'Standby',playMode==='free');
+    return null;
+  }
+
+  queue=new Array(MAX_QUEUE_LENGTH).fill(null);
+  take.forEach((event,idx)=>{
+    queue[idx]={
+      root:event.root,
+      type:event.type,
+      label:event.label,
+      notes:event.notes ? event.notes.slice() : null
+    };
+  });
+  queueLength=take.length>4?8:4;
+  recordedStepDurations=take.map((event,idx)=>{
+    if(idx===0){
+      return take[1] ? take[1].delay : getDivisionMs(chordDivision);
+    }
+    return event.delay;
+  });
+  recordedSequenceLength=take.length;
+  recordedSlotStarts=take.map(event=>event.start||0);
+  if(take.length>1){
+    recordedStepDurations[take.length-1]=recordedStepDurations[take.length-1]||recordedStepDurations[take.length-2];
+  }
+  useRecordedTiming=true;
+  recordedMidiNotes=rawNotes;
+  useRawMidiTiming=recordedMidiNotes.length>0;
+  document.getElementById('len4Btn').classList.toggle('on', queueLength===4);
+  document.getElementById('len8Btn').classList.toggle('on', queueLength===8);
+  renderQueue();
+  playMode='sequence';
+  freeArmed=false;
+  document.getElementById('modeSeqBtn').classList.add('on');
+  document.getElementById('modeFreeBtn').classList.remove('on');
+  updatePlayButton();
+  const message='Free timing saved - Loop ready';
+  setStatusText(message,true);
+  return message;
+}
+
+function toggleFreeRecord(){
+  if(freeRecording){
+    finishFreeRecording();
+  } else {
+    startFreeRecording();
+  }
+}
+
+function recordMidiNoteStart(note){
+  if(!freeRecording || activeRecordingNotes[note]!==undefined) return;
+  activeRecordingNotes[note]=performance.now()-freeRecordStartedAt;
+}
+
+function recordMidiNoteEnd(note){
+  if(!freeRecording || activeRecordingNotes[note]===undefined) return;
+  const end=performance.now()-freeRecordStartedAt;
+  const start=activeRecordingNotes[note];
+  recordedMidiNotes.push({
+    note,
+    start:Math.max(0,start),
+    duration:Math.max(20,end-start)
+  });
+  delete activeRecordingNotes[note];
+}
+
+function finalizeHeldRecordingNotes(){
+  if(!freeRecordStartedAt) return;
+  const end=performance.now()-freeRecordStartedAt;
+  Object.keys(activeRecordingNotes).forEach(note=>{
+    const start=activeRecordingNotes[note];
+    recordedMidiNotes.push({
+      note:Number(note),
+      start:Math.max(0,start),
+      duration:Math.max(20,end-start)
+    });
+  });
+  activeRecordingNotes={};
+}
+
+function armFreePlay(){
+  if(!queue.slice(0,queueLength).some(c=>c)){
+    setStatusText('Press MIDI Rec',true);
+    return;
+  }
+  stopAll();
+  freeArmed=true;
+  freeStep=nextQueuedChordIndex(0);
+  setPlaying(true);
+  setStatusText('Free armed',true);
+  updatePlayButton();
+}
+
+function playRawMidiTake(){
+  if(!recordedMidiNotes.length && !recordedDrumHits.length){
+    useRawMidiTiming=false;
+    useRawDrumTiming=false;
+    playQueue();
+    return;
+  }
+  clearQueueGlow();
+  const midiTotal=recordedMidiNotes.reduce((max,event)=>Math.max(max,event.start+event.duration),0);
+  const drumTotal=recordedDrumHits.reduce((max,event)=>Math.max(max,event.start+180),0);
+  const totalMs=Math.max(midiTotal,drumTotal);
+  recordedSlotStarts.slice(0,recordedSequenceLength).forEach((start,idx)=>{
+    const timer=setTimeout(()=>{
+      clearQueueGlow();
+      const slot=document.querySelector(`.qs[data-idx="${idx}"]`);
+      const chord=queue[idx];
+      if(slot && chord){
+        slot.className='qs playing';
+        slot.innerHTML=slotMarkup(idx,'playing');
+        showChordReadout(chord);
+      }
+    },Math.max(0,start));
+    rawPlaybackTimers.push(timer);
+  });
+  recordedMidiNotes.forEach(event=>{
+    const timer=setTimeout(()=>{
+      const ctx=getCtx();
+      const freq=midiNoteToFreq(event.note);
+      const dur=Math.max(0.04,event.duration/1000);
+      activeOscs.push(...playPiano(freq,ctx,0.08,dur));
+      const noteName=midiNoteToName(event.note);
+      document.querySelectorAll(`[data-note="${noteName}"]`).forEach(el=>{
+        el.classList.add('pressed');
+        setTimeout(()=>el.classList.remove('pressed'),Math.max(40,event.duration));
+      });
+    },Math.max(0,event.start));
+    rawPlaybackTimers.push(timer);
+  });
+  recordedDrumHits.forEach(event=>{
+    const timer=setTimeout(()=>{
+      playDrumHit(event.type,getCtx());
+      flashDrumPad(event.type);
+    },Math.max(0,event.start));
+    rawPlaybackTimers.push(timer);
+  });
+  const doneTimer=setTimeout(()=>{
+    clearQueueGlow();
+    rawPlaybackTimers=[];
+    if(looping){
+      playRawMidiTake();
+      return;
+    }
+    setPlaying(false);
+    drumPreviewLooping=false;
+    const previewBtn=document.getElementById('previewDrumsBtn');
+    if(previewBtn) previewBtn.textContent='Loop drums';
+  },Math.max(80,totalMs+120));
+  rawPlaybackTimers.push(doneTimer);
+}
+
 /* ═══════════════════ PLAYBACK ═══════════════════ */
 function playQueue(){
+  if(playMode==='free'){
+    if(freeArmed){
+      stopAll();
+    } else {
+      armFreePlay();
+    }
+    return;
+  }
+  if((useRawMidiTiming && recordedMidiNotes.length) || (useRawDrumTiming && recordedDrumHits.length)){
+    stopAll(); setPlaying(true);
+    playRawMidiTake();
+    return;
+  }
   if(!queue.slice(0,queueLength).some(c=>c))return; // At least one chord
   stopAll(); setPlaying(true);
   
@@ -1990,11 +2542,12 @@ function playQueue(){
   }
   
   const iv=getDivisionMs(chordDivision);
+  const playLength=useRecordedTiming && recordedSequenceLength ? recordedSequenceLength : queueLength;
   let step=0;
 
   function tick(){
     clearQueueGlow();
-    if(step>=queueLength){
+    if(step>=playLength){
       if(looping){
         // Restart sample loop
         if(sampleAudioBuffer){
@@ -2021,30 +2574,17 @@ function playQueue(){
       return;
     }
     const c=queue[step];
+    const stepMs=useRecordedTiming ? (recordedStepDurations[step] || iv) : iv;
+    const chordDur=Math.max(0.18,stepMs/1000*0.85);
+    const visualDur=Math.max(80,stepMs*0.9);
     const s=document.querySelector(`.qs[data-idx="${step}"]`);
     if(s){
       s.className='qs playing';
       s.innerHTML=slotMarkup(step,'playing');
     }
     if(c){
-      const d=(c.type==='maj'?MAJ:MIN)[c.root];
-      const nms=d.semi.map(s=>ROOTS[s%12]);
-      document.getElementById('lcdName').textContent=c.root+(c.type==='maj'?' MAJ':' MIN');
-      document.getElementById('lcdNotes').textContent=nms.join(' · ');
-      document.getElementById('lcdMood').textContent=d.mood.split(' · ')[0];
-      document.getElementById('lcdAfter').textContent=d.after;
-      document.getElementById('icName').textContent=c.root+(c.type==='maj'?' Major':' Minor');
-      document.getElementById('icNotes').textContent=nms.join(' · ');
-      document.getElementById('icMood').textContent=d.mood;
-      document.getElementById('icAfter').textContent=d.after;
-      highlightKeys(d.semi);
-      document.querySelectorAll('.cb').forEach(b=>b.classList.remove('on'));
-      const cb=document.querySelector(`.cb[data-r="${c.root}"][data-t="${c.type}"]`);
-      if(cb)cb.classList.add('on');
-      document.querySelectorAll('.chord-node').forEach(n=>n.classList.remove('on'));
-      const mn=document.querySelector(`.chord-node[data-r="${c.root}"][data-t="${c.type}"]`);
-      if(mn)mn.classList.add('on');
-      activeOscs=playChordAudio(c.root,c.type,iv/1000*0.85);
+      showChordReadout(c);
+      activeOscs=playRecordedChordAudio(c,chordDur);
     } else {
       // Rest: clear displays
       document.getElementById('lcdName').textContent='REST';
@@ -2060,7 +2600,7 @@ function playQueue(){
       document.querySelectorAll('.chord-node').forEach(n=>n.classList.remove('on'));
       activeOscs=[]; // No oscillators
     }
-    animBar(iv*0.9);
+    animBar(visualDur);
 
     // Play drums if enabled (on every step, including rests)
     if(drumsEnabled && DRUM_PATTERNS[drumsEnabled]){
@@ -2068,7 +2608,7 @@ function playQueue(){
     }
 
     step++;
-    qTimer=setTimeout(tick,iv);
+    qTimer=setTimeout(tick,Math.max(0,stepMs));
   }
   tick();
 }
@@ -2078,6 +2618,7 @@ function adjBPM(d){bpm=Math.max(60,Math.min(160,bpm+d));document.getElementById(
 function setQueueLength(len){
   queueLength=len===8?8:4;
   if(selSlot!==null && selSlot>=queueLength) selSlot=null;
+  clearRecordedTiming();
   document.getElementById('len4Btn').classList.toggle('on', queueLength===4);
   document.getElementById('len8Btn').classList.toggle('on', queueLength===8);
   renderQueue();
@@ -2145,9 +2686,11 @@ function setSaved(arr){localStorage.setItem('cm_progs',JSON.stringify(arr))}
 
 function openSaveModal(){
   const filled=queue.slice(0,queueLength).filter(Boolean);
-  if(!filled.length){alert('Add some chords to the queue first');return;}
+  if(!filled.length && !recordedDrumHits.length){setStatusText('Record notes or drums first',true);return;}
   document.getElementById('saveInput').value='';
-  const prev=filled.map(c=>c.root+(c.type==='maj'?'':'m')).join(' → ');
+  const prev=filled.length
+    ? filled.map(c=>c.label || (c.root+(c.type==='maj'?'':'m'))).join(' → ')
+    : recordedDrumHits.length+' drum hits';
   document.getElementById('savePreview').innerHTML=`<span>${prev}</span>`;
   document.getElementById('saveModal').classList.remove('hide');
   setTimeout(()=>document.getElementById('saveInput').focus(),50);
@@ -2157,9 +2700,19 @@ function confirmSave(){
   const name=document.getElementById('saveInput').value.trim();
   if(!name)return;
   const filled=queue.slice(0,queueLength).filter(Boolean);
-  if(!filled.length)return;
+  if(!filled.length && !recordedDrumHits.length)return;
   const saved=getSaved();
-  saved.unshift({name,chords:filled,length:queueLength,date:Date.now()});
+  saved.unshift({
+    name,
+    chords:filled,
+    length:queueLength,
+    timing:useRecordedTiming?recordedStepDurations.slice(0,recordedSequenceLength):null,
+    starts:useRecordedTiming?recordedSlotStarts.slice(0,recordedSequenceLength):null,
+    midiNotes:useRawMidiTiming?recordedMidiNotes.map(event=>({...event})):null,
+    drumHits:useRawDrumTiming?recordedDrumHits.map(event=>({...event})):null,
+    recordedLength:useRecordedTiming?recordedSequenceLength:0,
+    date:Date.now()
+  });
   setSaved(saved);
   closeSaveModal();
 }
@@ -2177,8 +2730,11 @@ function renderLib(){
   saved.forEach((p,i)=>{
     const row=document.createElement('div');
     row.className='lib-row';
-    const preview=p.chords.map(c=>c.root+(c.type==='maj'?'':'m')).join(' · ');
-    row.innerHTML=`<span class="lib-name">${p.name}</span><span class="lib-chords">${preview} · ${p.length||Math.min(MAX_QUEUE_LENGTH, Math.max(4, p.chords.length))} step</span>
+    const preview=p.chords.length
+      ? p.chords.map(c=>c.label || (c.root+(c.type==='maj'?'':'m'))).join(' · ')
+      : ((p.drumHits&&p.drumHits.length?p.drumHits.length:0)+' drum hits');
+    const feel=(p.timing&&p.timing.length)||(p.drumHits&&p.drumHits.length)?' · free feel':'';
+    row.innerHTML=`<span class="lib-name">${p.name}</span><span class="lib-chords">${preview} · ${p.length||Math.min(MAX_QUEUE_LENGTH, Math.max(4, p.chords.length))} step${feel}</span>
     <button class="lib-load" onclick="loadSaved(${i})">Load</button>
     <button class="lib-del" onclick="deleteSaved(${i})">×</button>`;
     list.appendChild(row);
@@ -2192,6 +2748,16 @@ function loadSaved(i){
   setQueueLength(p.length===8?8:4);
   queue=new Array(MAX_QUEUE_LENGTH).fill(null);
   p.chords.forEach((c,j)=>{if(j<queueLength)queue[j]=c});
+  if(p.timing && p.timing.length){
+    recordedStepDurations=p.timing.slice(0,MAX_QUEUE_LENGTH);
+    recordedSequenceLength=Math.min(p.recordedLength||p.timing.length,MAX_QUEUE_LENGTH);
+    recordedSlotStarts=(p.starts||[]).slice(0,MAX_QUEUE_LENGTH);
+    recordedMidiNotes=(p.midiNotes||[]).map(event=>({...event}));
+    useRecordedTiming=true;
+    useRawMidiTiming=recordedMidiNotes.length>0;
+  }
+  recordedDrumHits=(p.drumHits||[]).map(event=>({...event}));
+  useRawDrumTiming=recordedDrumHits.length>0;
   renderQueue();
   closeLibModal();
   playQueue();
@@ -2207,9 +2773,9 @@ function deleteSaved(i){
 const OB=[
   {title:'The piano shows your chord',body:'When you select a chord, the <strong>keys light up green</strong> so you see exactly which notes make it up. Click any key to hear that individual note. Choose from <strong>6 piano sounds</strong> in the left panel, including Warm, E.Piano, Felt, and Bell.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="3" height="14" rx="1" fill="#4A5A1A"/><rect x="6" y="4" width="3" height="14" rx="1" fill="#C5F250"/><rect x="10" y="4" width="3" height="14" rx="1" fill="#4A5A1A"/><rect x="14" y="4" width="3" height="14" rx="1" fill="#C5F250"/><rect x="4.5" y="4" width="2" height="9" rx="0.5" fill="#1A1A18"/><rect x="8.5" y="4" width="2" height="9" rx="0.5" fill="#1A1A18"/><rect x="12.5" y="4" width="2" height="9" rx="0.5" fill="#1A1A18"/></svg>`},
   {title:'Chord buttons + Mood map',body:'Click any <strong>chord button</strong> to hear it, then drag or click chords into the queue below. Empty queue slots now work as <strong>rests</strong>, so you can leave space between chords. Switch to the <strong>Mood Map</strong> tab to explore every chord by feel and drop ideas straight into the sequencer.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="7" cy="7" r="4" fill="#C5F250"/><rect x="11" y="3" width="6" height="6" rx="1" fill="#2A3A0A" transform="rotate(45 14 6)"/><circle cx="5" cy="15" r="3" fill="#2A3A0A"/><circle cx="14" cy="14" r="3" fill="#2A3A0A"/></svg>`},
-  {title:'Play chords with MIDI',body:'Use your MIDI keyboard in <strong>Chrome</strong> for best compatibility (Web MIDI API support). Click a selected chord again to <strong>unselect</strong> it, or use <strong>Clear</strong> for free play. The queue can run as a <strong>4-step or 8-step</strong> sequence, and you can change chord timing with the <strong>1/4, 1/8, 1/16, and 1/32</strong> rate controls.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" fill="#C88A00" stroke="#E24B4A" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="#1A1A18"/><path d="M6 6 L14 14" stroke="#1A1A18" stroke-width="1.5"/><path d="M14 6 L6 14" stroke="#1A1A18" stroke-width="1.5"/></svg>`},
-  {title:'Build, edit, and save progressions',body:'Click a <strong>starter progression</strong> to load it, or use the <strong>+</strong> icon to append it to your current queue. Remove any chord with the <strong>slot delete button</strong>, leave empty slots as rests, then hit <strong>Play Queue</strong> to hear the result. Use <strong>Loop</strong> to keep it running and <strong>+ Save</strong> to store either 4-step or 8-step progressions in your library.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="3" height="10" rx="1" fill="#C5F250"/><rect x="6" y="5" width="3" height="13" rx="1" fill="#8AB020"/><rect x="10" y="10" width="3" height="8" rx="1" fill="#4A5A1A"/><rect x="14" y="3" width="3" height="15" rx="1" fill="#8AB020"/></svg>`},
-  {title:'Samples and drums',body:'In the <strong>Sample</strong> tab, upload audio, drag the loop handles, or <strong>type exact loop start and end times</strong> into the text fields. In the drums section, choose preset or custom patterns, switch between <strong>Classic, Punch, and Soft</strong> drum kits, change the drum rate with <strong>1/4 to 1/32</strong>, and use <strong>Loop drums</strong> to audition the groove by itself.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="16" r="2" fill="#C5F250"/><circle cx="8" cy="12" r="2" fill="#8AB020"/><circle cx="12" cy="16" r="2" fill="#4A5A1A"/><circle cx="16" cy="12" r="2" fill="#C5F250"/><rect x="2" y="8" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="6" y="4" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="10" y="8" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="14" y="4" width="2" height="6" rx="1" fill="#2A3A0A"/></svg>`},
+  {title:'Record free MIDI timing',body:'Use your MIDI keyboard in <strong>Chrome</strong> for best compatibility. Click <strong>MIDI Rec</strong>, then play any notes, intervals, clusters, or jazz voicings. The sequencer fills live while the app records your real note timing and releases, without quantizing to BPM or chord-rate divisions.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" fill="#C88A00" stroke="#E24B4A" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="#1A1A18"/><path d="M6 6 L14 14" stroke="#1A1A18" stroke-width="1.5"/><path d="M14 6 L6 14" stroke="#1A1A18" stroke-width="1.5"/></svg>`},
+  {title:'Play back, loop, and save',body:'Click <strong>Stop Rec</strong> when the take feels right, then use <strong>Play Queue</strong> to hear it back with the same human timing. Turn on <strong>Loop</strong> before playback to repeat the recorded take, and use <strong>+ Save</strong> to store the free-timed progression in your library.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="3" height="10" rx="1" fill="#C5F250"/><rect x="6" y="5" width="3" height="13" rx="1" fill="#8AB020"/><rect x="10" y="10" width="3" height="8" rx="1" fill="#4A5A1A"/><rect x="14" y="3" width="3" height="15" rx="1" fill="#8AB020"/></svg>`},
+  {title:'Free drums and samples',body:'Use <strong>Drum Rec</strong> to tap Kick, Snare, and Hat with your own feel. Drum takes are recorded without quantizing and can loop with the same <strong>Loop</strong> button as MIDI takes. In the <strong>Sample</strong> tab, upload audio, drag loop handles, or type exact loop start and end times.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="16" r="2" fill="#C5F250"/><circle cx="8" cy="12" r="2" fill="#8AB020"/><circle cx="12" cy="16" r="2" fill="#4A5A1A"/><circle cx="16" cy="12" r="2" fill="#C5F250"/><rect x="2" y="8" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="6" y="4" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="10" y="8" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="14" y="4" width="2" height="6" rx="1" fill="#2A3A0A"/></svg>`},
 ];
 function renderOb(){
   const s=OB[obStep];
@@ -2228,6 +2794,9 @@ function closeOb(){document.getElementById('obBg').classList.add('hide')}
 let midiAccess=null;
 let midiNoteOscs={};   // noteNum → array of oscillator nodes
 let midiFlashTimer=null;
+let activeMidiNotes=new Set();
+let midiChordTimer=null;
+let lastMidiChordSignature=null;
 
 const NOTE_NAMES=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 
@@ -2238,6 +2807,55 @@ function midiNoteToFreq(note){
 
 function midiNoteToName(note){
   return NOTE_NAMES[note%12];
+}
+
+function chordFromMidiNotes(notes){
+  if(!notes.length) return null;
+  const sorted=[...new Set(notes)].sort((a,b)=>a-b);
+  const names=sorted.map(midiNoteToName);
+  const uniqueNames=[...new Set(names)];
+  const root=midiNoteToName(sorted[0]);
+  let label=root;
+  if(uniqueNames.length===1){
+    label=root;
+  } else if(uniqueNames.length<=3){
+    label=uniqueNames.join('');
+  } else {
+    label=root+'+'+(uniqueNames.length-1);
+  }
+  return {
+    root,
+    type:'free',
+    label,
+    notes:sorted
+  };
+}
+
+function scheduleMidiChordCapture(){
+  if(!freeRecording) return;
+  if(activeMidiNotes.size<1){
+    const held=[...activeMidiNotes].map(midiNoteToName).join(' ');
+    setStatusText(held ? 'Playing '+held : 'Play any notes',true);
+    return;
+  }
+  clearTimeout(midiChordTimer);
+  midiChordTimer=setTimeout(captureMidiChord,90);
+}
+
+function captureMidiChord(){
+  if(!freeRecording) return;
+  const notes=[...activeMidiNotes];
+  const chord=chordFromMidiNotes(notes);
+  if(!chord){
+    setStatusText('Play any notes',true);
+    return;
+  }
+  const signature=chord.notes.join(',');
+  if(signature===lastMidiChordSignature) return;
+  lastMidiChordSignature=signature;
+  showChordReadout(chord);
+  recordFreeHit(chord);
+  setStatusText('Added '+chord.label,true);
 }
 
 function setMidiStatus(state,label){
@@ -2268,6 +2886,14 @@ function onMidiMessage(e){
 
   // Note On (0x90) with velocity > 0
   if(cmd===0x90 && velocity>0){
+    activeMidiNotes.add(note);
+    recordMidiNoteStart(note);
+    if(freeRecording){
+      scheduleMidiChordCapture();
+    } else if(playMode==='free' && freeArmed && advanceFreeChord()){
+      flashMidiActive();
+      return;
+    }
     const freq=midiNoteToFreq(note);
     const noteName=midiNoteToName(note);
     const ctx=getCtx();
@@ -2283,6 +2909,13 @@ function onMidiMessage(e){
 
   // Note Off (0x80) or Note On with velocity 0
   if(cmd===0x80||(cmd===0x90&&velocity===0)){
+    recordMidiNoteEnd(note);
+    activeMidiNotes.delete(note);
+    if(activeMidiNotes.size===0) lastMidiChordSignature=null;
+    if(freeRecording && activeMidiNotes.size===0){
+      const held=[...activeMidiNotes].map(midiNoteToName).join(' ');
+      setStatusText(held ? 'Playing '+held : 'Play any notes',true);
+    }
     if(midiNoteOscs[note]){
       // Let the natural decay handle it — just clear tracking
       midiNoteOscs[note]=null;
@@ -2398,6 +3031,7 @@ function init(){
   setDrums(false);
   updateMobileFlow();
   window.addEventListener('resize', updateMobileFlow);
+  window.addEventListener('keydown', handleDrumKeyboard);
 }
 init();
 </script>
