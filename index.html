@@ -291,6 +291,7 @@ input{font-family:var(--mono)}
 .clear-btn:active{transform:scale(.96)}
 .stop-btn{background:transparent;color:var(--dim);border:.5px solid var(--dim);border-radius:2px;font-family:var(--disp);font-size:9px;letter-spacing:.16em;text-transform:uppercase;padding:8px 14px;transition:all .06s}
 .stop-btn:hover{color:var(--g);border-color:var(--g)}
+.stop-btn.on{color:var(--g);border-color:var(--g);background:rgba(197,242,80,.06)}
 .mode-tog{display:flex;align-items:center;gap:2px;background:#2A2A26;border:.5px solid #3A3A34;border-radius:3px;padding:2px}
 .mode-btn{min-width:42px;padding:6px 8px;border-radius:2px;font-family:var(--disp);font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);transition:all .08s}
 .mode-btn.on{background:var(--g);color:var(--ink)}
@@ -711,6 +712,7 @@ input{font-family:var(--mono)}
       <button class="bpm-btn" onclick="adjBPM(-5)">−</button>
       <span class="bpm-val" id="bpmVal">90</span>
       <button class="bpm-btn" onclick="adjBPM(5)">+</button>
+      <button class="stop-btn" id="metroBtn" type="button" onclick="toggleMetronome()">Metro</button>
     </div>
     <div class="volume-mixer">
       <div class="vm-row">
@@ -796,6 +798,8 @@ let freeRecording=false, recordedPerformance=[], freeRecordStartedAt=0, freeLast
 let recordedStepDurations=[], recordedSequenceLength=0, useRecordedTiming=false;
 let recordedSlotStarts=[], recordedMidiNotes=[], activeRecordingNotes={}, rawPlaybackTimers=[], useRawMidiTiming=false;
 let drumRecording=false, drumRecordStartedAt=0, recordedDrumHits=[], useRawDrumTiming=false;
+let recordedTakeBpm=90;
+let metronomeOn=false, metronomeTimer=null;
 let drumsEnabled=false;
 let sampleAudioBuffer=null, sampleSource=null, sampleGain=null;
 let sampleLoopStart=0, sampleLoopEnd=0;
@@ -1157,6 +1161,46 @@ function playDrumHit(type, ctx){
   if(type==='hihat') return playHihat(ctx);
 }
 
+function playMetronomeClick(accent=false){
+  const ctx=getCtx();
+  const now=ctx.currentTime;
+  const osc=ctx.createOscillator();
+  const gain=ctx.createGain();
+  osc.type='square';
+  osc.frequency.value=accent?1200:850;
+  gain.gain.setValueAtTime(accent?0.09:0.055,now);
+  gain.gain.exponentialRampToValueAtTime(0.001,now+0.045);
+  osc.connect(gain);
+  gain.connect(masterBus);
+  osc.start(now);
+  osc.stop(now+0.05);
+}
+
+function startMetronome(){
+  clearTimeout(metronomeTimer);
+  let beat=0;
+  const tick=()=>{
+    if(!metronomeOn) return;
+    playMetronomeClick(beat%4===0);
+    beat++;
+    metronomeTimer=setTimeout(tick,60000/bpm);
+  };
+  tick();
+}
+
+function toggleMetronome(){
+  metronomeOn=!metronomeOn;
+  const btn=document.getElementById('metroBtn');
+  if(btn) btn.classList.toggle('on',metronomeOn);
+  if(metronomeOn){
+    startMetronome();
+    setStatusText('Metronome on',true);
+  } else {
+    clearTimeout(metronomeTimer);
+    setStatusText('Metronome off',false);
+  }
+}
+
 function flashDrumPad(type){
   const id={kick:'drumPadKick',snare:'drumPadSnare',hihat:'drumPadHihat'}[type];
   const pad=id?document.getElementById(id):null;
@@ -1173,6 +1217,10 @@ function playDrumPad(type){
 
 function recordDrumHit(type){
   if(!drumRecording) return;
+  if(!drumRecordStartedAt){
+    drumRecordStartedAt=performance.now();
+    setStatusText('Drum take started',true);
+  }
   const start=performance.now()-drumRecordStartedAt;
   recordedDrumHits.push({type,start:Math.max(0,start)});
   setStatusText('Drum rec '+recordedDrumHits.length,true);
@@ -1181,17 +1229,19 @@ function recordDrumHit(type){
 function startDrumRecording(){
   stopAll();
   drumRecording=true;
-  drumRecordStartedAt=performance.now();
+  drumRecordStartedAt=0;
   recordedDrumHits=[];
   useRawDrumTiming=false;
+  recordedTakeBpm=bpm;
   setPlaying(true);
   updateDrumRecordButton();
-  setStatusText('Tap drum pads',true);
+  setStatusText('Waiting for first drum hit',true);
 }
 
 function finishDrumRecording(){
   drumRecording=false;
   updateDrumRecordButton();
+  drumRecordStartedAt=0;
   if(!recordedDrumHits.length){
     setStatusText('No drum hits',true);
     return null;
@@ -1644,6 +1694,8 @@ function stopAll(){
   const drumRecordingMessage=drumRecording ? finishDrumRecording() : null;
   clearTimeout(qTimer);
   clearTimeout(midiChordTimer);
+  clearTimeout(metronomeTimer);
+  if(!metronomeOn) metronomeTimer=null;
   rawPlaybackTimers.forEach(timer=>clearTimeout(timer));
   rawPlaybackTimers=[];
   drumTimers.forEach(timer=>clearTimeout(timer));
@@ -1665,6 +1717,7 @@ function stopAll(){
   updateDrumRecordButton();
   if(recordingMessage) setStatusText(recordingMessage,true);
   if(drumRecordingMessage) setStatusText(drumRecordingMessage,true);
+  if(metronomeOn) startMetronome();
 }
 
 function setPlaying(s){
@@ -2131,7 +2184,6 @@ function setRateButtons(prefix, division){
 
 function setChordDivision(division){
   chordDivision=NOTE_DIVISIONS[division] ? division : '1/8';
-  clearRecordedTiming();
   setRateButtons('chordRate', chordDivision);
 }
 
@@ -2183,15 +2235,13 @@ function previewDrums(){
   const previewBtn=document.getElementById('previewDrumsBtn');
   if(previewBtn) previewBtn.textContent='Stop drums';
   setPlaying(true);
-  const previewLength=getDivisionMs(drumDivision)*4;
-
   function loopPreview(){
     if(!drumPreviewLooping || !drumsEnabled || !DRUM_PATTERNS[drumsEnabled]){
       stopAll();
       return;
     }
     scheduleDrumPattern(DRUM_PATTERNS[drumsEnabled]);
-    qTimer=setTimeout(loopPreview, previewLength);
+    qTimer=setTimeout(loopPreview, getDivisionMs(drumDivision)*4);
   }
 
   loopPreview();
@@ -2207,6 +2257,7 @@ function clearRecordedTiming(){
   activeRecordingNotes={};
   recordedDrumHits=[];
   useRawDrumTiming=false;
+  recordedTakeBpm=bpm;
 }
 
 function showChordReadout(chord){
@@ -2286,6 +2337,11 @@ function recordFreeHit(chord){
     return;
   }
   const now=performance.now();
+  if(!freeRecordStartedAt){
+    freeRecordStartedAt=now;
+    freeLastHitAt=0;
+    setStatusText('Take started',true);
+  }
   const delay=freeLastHitAt ? now-freeLastHitAt : 0;
   const start=freeRecordStartedAt ? now-freeRecordStartedAt : 0;
   const slotIdx=recordedPerformance.length;
@@ -2335,11 +2391,12 @@ function startFreeRecording(){
   recordedPerformance=[];
   recordedMidiNotes=[];
   activeRecordingNotes={};
-  freeRecordStartedAt=performance.now();
+  recordedTakeBpm=bpm;
+  freeRecordStartedAt=0;
   freeLastHitAt=0;
   freeRecording=true;
   updateRecordButton();
-  setStatusText('Free timing rec',true);
+  setStatusText('Waiting for first note',true);
 }
 
 function finishFreeRecording(){
@@ -2404,6 +2461,11 @@ function toggleFreeRecord(){
 
 function recordMidiNoteStart(note){
   if(!freeRecording || activeRecordingNotes[note]!==undefined) return;
+  if(!freeRecordStartedAt){
+    freeRecordStartedAt=performance.now();
+    freeLastHitAt=0;
+    setStatusText('MIDI take started',true);
+  }
   activeRecordingNotes[note]=performance.now()-freeRecordStartedAt;
 }
 
@@ -2454,8 +2516,9 @@ function playRawMidiTake(){
     return;
   }
   clearQueueGlow();
-  const midiTotal=recordedMidiNotes.reduce((max,event)=>Math.max(max,event.start+event.duration),0);
-  const drumTotal=recordedDrumHits.reduce((max,event)=>Math.max(max,event.start+180),0);
+  const tempoScale=recordedTakeBpm/bpm;
+  const midiTotal=recordedMidiNotes.reduce((max,event)=>Math.max(max,(event.start+event.duration)*tempoScale),0);
+  const drumTotal=recordedDrumHits.reduce((max,event)=>Math.max(max,(event.start+180)*tempoScale),0);
   const totalMs=Math.max(midiTotal,drumTotal);
   recordedSlotStarts.slice(0,recordedSequenceLength).forEach((start,idx)=>{
     const timer=setTimeout(()=>{
@@ -2467,28 +2530,28 @@ function playRawMidiTake(){
         slot.innerHTML=slotMarkup(idx,'playing');
         showChordReadout(chord);
       }
-    },Math.max(0,start));
+    },Math.max(0,start*tempoScale));
     rawPlaybackTimers.push(timer);
   });
   recordedMidiNotes.forEach(event=>{
     const timer=setTimeout(()=>{
       const ctx=getCtx();
       const freq=midiNoteToFreq(event.note);
-      const dur=Math.max(0.04,event.duration/1000);
+      const dur=Math.max(0.04,(event.duration*tempoScale)/1000);
       activeOscs.push(...playPiano(freq,ctx,0.08,dur));
       const noteName=midiNoteToName(event.note);
       document.querySelectorAll(`[data-note="${noteName}"]`).forEach(el=>{
         el.classList.add('pressed');
-        setTimeout(()=>el.classList.remove('pressed'),Math.max(40,event.duration));
+        setTimeout(()=>el.classList.remove('pressed'),Math.max(40,event.duration*tempoScale));
       });
-    },Math.max(0,event.start));
+    },Math.max(0,event.start*tempoScale));
     rawPlaybackTimers.push(timer);
   });
   recordedDrumHits.forEach(event=>{
     const timer=setTimeout(()=>{
       playDrumHit(event.type,getCtx());
       flashDrumPad(event.type);
-    },Math.max(0,event.start));
+    },Math.max(0,event.start*tempoScale));
     rawPlaybackTimers.push(timer);
   });
   const doneTimer=setTimeout(()=>{
@@ -2541,7 +2604,6 @@ function playQueue(){
     sampleSource.start(ctx.currentTime, sampleLoopStart);
   }
   
-  const iv=getDivisionMs(chordDivision);
   const playLength=useRecordedTiming && recordedSequenceLength ? recordedSequenceLength : queueLength;
   let step=0;
 
@@ -2574,7 +2636,8 @@ function playQueue(){
       return;
     }
     const c=queue[step];
-    const stepMs=useRecordedTiming ? (recordedStepDurations[step] || iv) : iv;
+    const currentIv=getDivisionMs(chordDivision);
+    const stepMs=useRecordedTiming ? (recordedStepDurations[step] || currentIv) : currentIv;
     const chordDur=Math.max(0.18,stepMs/1000*0.85);
     const visualDur=Math.max(80,stepMs*0.9);
     const s=document.querySelector(`.qs[data-idx="${step}"]`);
@@ -2613,7 +2676,14 @@ function playQueue(){
   tick();
 }
 
-function adjBPM(d){bpm=Math.max(60,Math.min(160,bpm+d));document.getElementById('bpmVal').textContent=bpm}
+function adjBPM(d){
+  bpm=Math.max(40,Math.min(220,bpm+d));
+  document.getElementById('bpmVal').textContent=bpm;
+  if(metronomeOn) startMetronome();
+  if((useRawMidiTiming&&recordedMidiNotes.length)||(useRawDrumTiming&&recordedDrumHits.length)){
+    setStatusText('BPM scales free take',true);
+  }
+}
 
 function setQueueLength(len){
   queueLength=len===8?8:4;
@@ -2710,6 +2780,7 @@ function confirmSave(){
     starts:useRecordedTiming?recordedSlotStarts.slice(0,recordedSequenceLength):null,
     midiNotes:useRawMidiTiming?recordedMidiNotes.map(event=>({...event})):null,
     drumHits:useRawDrumTiming?recordedDrumHits.map(event=>({...event})):null,
+    takeBpm:recordedTakeBpm,
     recordedLength:useRecordedTiming?recordedSequenceLength:0,
     date:Date.now()
   });
@@ -2758,6 +2829,7 @@ function loadSaved(i){
   }
   recordedDrumHits=(p.drumHits||[]).map(event=>({...event}));
   useRawDrumTiming=recordedDrumHits.length>0;
+  recordedTakeBpm=p.takeBpm||bpm;
   renderQueue();
   closeLibModal();
   playQueue();
