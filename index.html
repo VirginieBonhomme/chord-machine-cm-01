@@ -1229,7 +1229,8 @@ function recordDrumHit(type){
 }
 
 function startDrumRecording(){
-  stopAll();
+  const keepPlayback=isPlaying;
+  if(!keepPlayback) stopAll();
   drumRecording=true;
   drumRecordStartedAt=0;
   pendingDrumHits=[];
@@ -1238,9 +1239,12 @@ function startDrumRecording(){
     useRawDrumTiming=false;
   }
   recordedTakeBpm=bpm;
-  setPlaying(true);
+  if(!keepPlayback) setPlaying(true);
   updateDrumRecordButton();
-  setStatusText(drumLayerMode?'Layer: first hit':'Waiting for first drum hit',true);
+  setStatusText(
+    keepPlayback ? 'Drum rec over loop' : (drumLayerMode?'Layer: first hit':'Waiting for first drum hit'),
+    true
+  );
 }
 
 function finishDrumRecording(){
@@ -2237,7 +2241,7 @@ function previewDrums(){
     const previewBtn=document.getElementById('previewDrumsBtn');
     if(previewBtn) previewBtn.textContent='Stop drums';
     setPlaying(true);
-    playRawMidiTake();
+    playRawDrumTake();
     setStatusText('Looping drums',true);
     return;
   }
@@ -2589,6 +2593,29 @@ function playRawMidiTake(){
   rawPlaybackTimers.push(doneTimer);
 }
 
+function playRawDrumTake(){
+  if(!recordedDrumHits.length) return;
+  const tempoScale=recordedTakeBpm/bpm;
+  const drumTotal=recordedDrumHits.reduce((max,event)=>Math.max(max,(event.start+180)*tempoScale),0);
+  recordedDrumHits.forEach(event=>{
+    const timer=setTimeout(()=>{
+      playDrumHit(event.type,getCtx());
+      flashDrumPad(event.type);
+    },Math.max(0,event.start*tempoScale));
+    rawPlaybackTimers.push(timer);
+  });
+  const doneTimer=setTimeout(()=>{
+    if(looping || drumPreviewLooping){
+      playRawDrumTake();
+      return;
+    }
+    drumPreviewLooping=false;
+    const previewBtn=document.getElementById('previewDrumsBtn');
+    if(previewBtn) previewBtn.textContent='Loop drums';
+  },Math.max(80,drumTotal+120));
+  rawPlaybackTimers.push(doneTimer);
+}
+
 /* ═══════════════════ PLAYBACK ═══════════════════ */
 function playQueue(){
   if(playMode==='free'){
@@ -2599,9 +2626,14 @@ function playQueue(){
     }
     return;
   }
-  if((useRawMidiTiming && recordedMidiNotes.length) || (useRawDrumTiming && recordedDrumHits.length)){
+  if(useRawMidiTiming && recordedMidiNotes.length){
     stopAll(); setPlaying(true);
     playRawMidiTake();
+    return;
+  }
+  if(useRawDrumTiming && recordedDrumHits.length && !queue.slice(0,queueLength).some(c=>c)){
+    stopAll(); setPlaying(true);
+    playRawDrumTake();
     return;
   }
   if(!queue.slice(0,queueLength).some(c=>c))return; // At least one chord
@@ -2622,6 +2654,10 @@ function playQueue(){
     samplePlaying=true;
     sampleStartTime=ctx.currentTime;
     sampleSource.start(ctx.currentTime, sampleLoopStart);
+  }
+
+  if(useRawDrumTiming && recordedDrumHits.length){
+    playRawDrumTake();
   }
   
   const playLength=useRecordedTiming && recordedSequenceLength ? recordedSequenceLength : queueLength;
