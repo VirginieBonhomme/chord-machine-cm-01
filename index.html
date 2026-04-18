@@ -160,6 +160,7 @@ input{font-family:var(--mono)}
 .drum-rec-btn{background:transparent;color:#A86A00;border:.5px solid #A86A00;border-radius:2px;padding:7px 10px;font-size:8px;font-family:var(--disp);font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .08s}
 .drum-rec-btn:hover{color:#FFD060;border-color:#FFD060}
 .drum-rec-btn.on{background:#3D2E00;color:#FFD060;border-color:#C88A00}
+.drum-rec-btn.mode-on{color:var(--g);border-color:var(--g);background:rgba(197,242,80,.06)}
 
 /* Chord grid */
 .chord-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
@@ -660,6 +661,7 @@ input{font-family:var(--mono)}
           <div class="drum-machine-top">
             <div class="drum-machine-title">Live drum pads</div>
             <button class="drum-rec-btn" id="drumRecBtn" type="button" onclick="toggleDrumRecording()">● Drum Rec</button>
+            <button class="drum-rec-btn" id="drumLayerBtn" type="button" onclick="toggleDrumLayerMode()">Layer Off</button>
           </div>
           <div class="drum-pads">
             <button class="drum-pad" id="drumPadKick" type="button" onclick="playDrumPad('kick')" title="Keyboard: A">
@@ -797,7 +799,7 @@ let playMode='sequence', freeArmed=false, freeStep=0;
 let freeRecording=false, recordedPerformance=[], freeRecordStartedAt=0, freeLastHitAt=0;
 let recordedStepDurations=[], recordedSequenceLength=0, useRecordedTiming=false;
 let recordedSlotStarts=[], recordedMidiNotes=[], activeRecordingNotes={}, rawPlaybackTimers=[], useRawMidiTiming=false;
-let drumRecording=false, drumRecordStartedAt=0, recordedDrumHits=[], useRawDrumTiming=false;
+let drumRecording=false, drumRecordStartedAt=0, recordedDrumHits=[], pendingDrumHits=[], useRawDrumTiming=false, drumLayerMode=false;
 let recordedTakeBpm=90;
 let metronomeOn=false, metronomeTimer=null;
 let drumsEnabled=false;
@@ -1222,37 +1224,44 @@ function recordDrumHit(type){
     setStatusText('Drum take started',true);
   }
   const start=performance.now()-drumRecordStartedAt;
-  recordedDrumHits.push({type,start:Math.max(0,start)});
-  setStatusText('Drum rec '+recordedDrumHits.length,true);
+  pendingDrumHits.push({type,start:Math.max(0,start)});
+  setStatusText('Drum rec '+pendingDrumHits.length,true);
 }
 
 function startDrumRecording(){
   stopAll();
   drumRecording=true;
   drumRecordStartedAt=0;
-  recordedDrumHits=[];
-  useRawDrumTiming=false;
+  pendingDrumHits=[];
+  if(!drumLayerMode){
+    recordedDrumHits=[];
+    useRawDrumTiming=false;
+  }
   recordedTakeBpm=bpm;
   setPlaying(true);
   updateDrumRecordButton();
-  setStatusText('Waiting for first drum hit',true);
+  setStatusText(drumLayerMode?'Layer: first hit':'Waiting for first drum hit',true);
 }
 
 function finishDrumRecording(){
   drumRecording=false;
   updateDrumRecordButton();
   drumRecordStartedAt=0;
-  if(!recordedDrumHits.length){
+  if(!pendingDrumHits.length){
     setStatusText('No drum hits',true);
     return null;
   }
+  recordedDrumHits=drumLayerMode
+    ? recordedDrumHits.concat(pendingDrumHits).sort((a,b)=>a.start-b.start)
+    : pendingDrumHits.slice();
+  pendingDrumHits=[];
   useRawDrumTiming=true;
   playMode='sequence';
   freeArmed=false;
   document.getElementById('modeSeqBtn').classList.add('on');
   document.getElementById('modeFreeBtn').classList.remove('on');
   updatePlayButton();
-  const message='Drum timing saved - Loop ready';
+  const message=drumLayerMode?'Drum layer added - Loop ready':'Drum timing saved - Loop ready';
   setStatusText(message,true);
   return message;
 }
@@ -1263,6 +1272,16 @@ function toggleDrumRecording(){
   } else {
     startDrumRecording();
   }
+}
+
+function toggleDrumLayerMode(){
+  drumLayerMode=!drumLayerMode;
+  const btn=document.getElementById('drumLayerBtn');
+  if(btn){
+    btn.classList.toggle('mode-on',drumLayerMode);
+    btn.textContent=drumLayerMode?'Layer On':'Layer Off';
+  }
+  setStatusText(drumLayerMode?'Drum layering on':'Drum layering off',drumLayerMode);
 }
 
 function handleDrumKeyboard(e){
@@ -2256,6 +2275,7 @@ function clearRecordedTiming(){
   recordedMidiNotes=[];
   activeRecordingNotes={};
   recordedDrumHits=[];
+  pendingDrumHits=[];
   useRawDrumTiming=false;
   recordedTakeBpm=bpm;
 }
@@ -2847,7 +2867,7 @@ const OB=[
   {title:'Chord buttons + Mood map',body:'Click any <strong>chord button</strong> to hear it, then drag or click chords into the queue below. Empty queue slots now work as <strong>rests</strong>, so you can leave space between chords. Switch to the <strong>Mood Map</strong> tab to explore every chord by feel and drop ideas straight into the sequencer.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="7" cy="7" r="4" fill="#C5F250"/><rect x="11" y="3" width="6" height="6" rx="1" fill="#2A3A0A" transform="rotate(45 14 6)"/><circle cx="5" cy="15" r="3" fill="#2A3A0A"/><circle cx="14" cy="14" r="3" fill="#2A3A0A"/></svg>`},
   {title:'Record free MIDI timing',body:'Use your MIDI keyboard in <strong>Chrome</strong> for best compatibility. Click <strong>MIDI Rec</strong>, then play any notes, intervals, clusters, or jazz voicings. The sequencer fills live while the app records your real note timing and releases, without quantizing to BPM or chord-rate divisions.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" fill="#C88A00" stroke="#E24B4A" stroke-width="2"/><circle cx="10" cy="10" r="3" fill="#1A1A18"/><path d="M6 6 L14 14" stroke="#1A1A18" stroke-width="1.5"/><path d="M14 6 L6 14" stroke="#1A1A18" stroke-width="1.5"/></svg>`},
   {title:'Play back, loop, and save',body:'Click <strong>Stop Rec</strong> when the take feels right, then use <strong>Play Queue</strong> to hear it back with the same human timing. Turn on <strong>Loop</strong> before playback to repeat the recorded take, and use <strong>+ Save</strong> to store the free-timed progression in your library.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="3" height="10" rx="1" fill="#C5F250"/><rect x="6" y="5" width="3" height="13" rx="1" fill="#8AB020"/><rect x="10" y="10" width="3" height="8" rx="1" fill="#4A5A1A"/><rect x="14" y="3" width="3" height="15" rx="1" fill="#8AB020"/></svg>`},
-  {title:'Free drums and samples',body:'Use <strong>Drum Rec</strong> to tap Kick, Snare, and Hat with your own feel. Drum takes are recorded without quantizing and can loop with the same <strong>Loop</strong> button as MIDI takes. In the <strong>Sample</strong> tab, upload audio, drag loop handles, or type exact loop start and end times.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="16" r="2" fill="#C5F250"/><circle cx="8" cy="12" r="2" fill="#8AB020"/><circle cx="12" cy="16" r="2" fill="#4A5A1A"/><circle cx="16" cy="12" r="2" fill="#C5F250"/><rect x="2" y="8" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="6" y="4" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="10" y="8" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="14" y="4" width="2" height="6" rx="1" fill="#2A3A0A"/></svg>`},
+  {title:'Free drums and samples',body:'Use <strong>Drum Rec</strong> to tap Kick, Snare, and Hat with your own feel. Turn <strong>Layer On</strong> to overdub extra drum passes on top of the existing groove. Drum takes are recorded without quantizing and can loop with the same <strong>Loop</strong> button as MIDI takes. In the <strong>Sample</strong> tab, upload audio, drag loop handles, or type exact loop start and end times.',icon:`<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="16" r="2" fill="#C5F250"/><circle cx="8" cy="12" r="2" fill="#8AB020"/><circle cx="12" cy="16" r="2" fill="#4A5A1A"/><circle cx="16" cy="12" r="2" fill="#C5F250"/><rect x="2" y="8" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="6" y="4" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="10" y="8" width="2" height="6" rx="1" fill="#2A3A0A"/><rect x="14" y="4" width="2" height="6" rx="1" fill="#2A3A0A"/></svg>`},
 ];
 function renderOb(){
   const s=OB[obStep];
